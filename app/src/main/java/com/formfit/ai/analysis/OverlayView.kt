@@ -52,8 +52,6 @@ private val COLOR_DOT     = Color(0xFFFFFFFF)  // Beyaz — eklem noktası
  * MediaPipe pose landmark sonuçlarını kamera ön izlemesinin üzerine çizen Canvas composable.
  *
  * @param result            PoseLandmarker çıktısı
- * @param imageWidth        Analiz edilen görüntünün genişliği
- * @param imageHeight       Analiz edilen görüntünün yüksekliği
  * @param liveMetrics       SquatAnalyzer'dan gelen canlı metrikler (renk kararı için)
  * @param isFrontCamera     Ön kamera kullanılıyorsa x ekseni yansıtılır
  * @param modifier          Compose modifier
@@ -61,11 +59,9 @@ private val COLOR_DOT     = Color(0xFFFFFFFF)  // Beyaz — eklem noktası
 @Composable
 fun PoseOverlay(
     result: PoseLandmarkerResult?,
-    imageWidth: Int,
-    imageHeight: Int,
     liveMetrics: LiveMetrics,
-    isFrontCamera: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isFrontCamera: Boolean = true
 ) {
     Canvas(modifier = modifier) {
         if (result == null || result.landmarks().isEmpty()) return@Canvas
@@ -73,37 +69,16 @@ fun PoseOverlay(
         val canvasW = size.width
         val canvasH = size.height
 
-        // Görüntü en-boy oranını koruyarak canvas'a ölçekleme
-        val scaleX: Float
-        val scaleY: Float
-        val offsetX: Float
-        val offsetY: Float
-
-        val imageAspect  = imageWidth.toFloat() / imageHeight.toFloat()
-        val canvasAspect = canvasW / canvasH
-
-        if (imageAspect > canvasAspect) {
-            scaleX  = canvasW / imageWidth.toFloat()
-            scaleY  = scaleX
-            offsetX = 0f
-            offsetY = (canvasH - imageHeight * scaleY) / 2f
-        } else {
-            scaleY  = canvasH / imageHeight.toFloat()
-            scaleX  = scaleY
-            offsetX = (canvasW - imageWidth * scaleX) / 2f
-            offsetY = 0f
-        }
-
         val landmarks = result.landmarks()[0]
         if (landmarks.size < 33) return@Canvas
 
-        // Normalize koordinatı → canvas koordinatına dönüştür
+        // Normalize koordinatı (0-1) → canvas koordinatına dönüştür
         fun toOffset(index: Int): Offset {
             val lm = landmarks[index]
-            val rawX = if (isFrontCamera) 1f - lm.x() else lm.x()
+            val normX = if (isFrontCamera) 1f - lm.x() else lm.x()
             return Offset(
-                x = rawX * imageWidth * scaleX + offsetX,
-                y = lm.y() * imageHeight * scaleY + offsetY
+                x = normX * canvasW,
+                y = lm.y() * canvasH
             )
         }
 
@@ -144,9 +119,8 @@ fun PoseOverlay(
             val visibility = lm.visibility().orElse(0f)
             if (visibility < MIN_VISIBILITY) return@forEachIndexed
 
-            val dotColor = when {
-                index in SQUAT_CRITICAL_JOINTS && liveMetrics.kneeOverToe -> COLOR_BAD
-                index in SQUAT_CRITICAL_JOINTS -> COLOR_GOOD
+            val dotColor = when (index) {
+                in SQUAT_CRITICAL_JOINTS -> if (liveMetrics.kneeOverToe) COLOR_BAD else COLOR_GOOD
                 else -> COLOR_NEUTRAL
             }
 

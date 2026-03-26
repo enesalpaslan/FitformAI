@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.formfit.ai.data.FakeDataSource
 import com.formfit.ai.data.model.Exercise
+import com.formfit.ai.data.model.User
 import com.formfit.ai.ui.theme.BackgroundDark
 import com.formfit.ai.ui.theme.DividerColor
 import com.formfit.ai.ui.theme.FitFormAITheme
@@ -52,9 +53,12 @@ import com.formfit.ai.ui.theme.SurfaceVariantDark
 import com.formfit.ai.ui.theme.TextSecondary
 
 @Composable
-fun HomeScreen(onStartWorkout: () -> Unit) {
+fun HomeScreen(
+    user: User? = null,
+    onStartWorkout: (Int) -> Unit
+) {
     val context = LocalContext.current
-    val user = FakeDataSource.getUserById(1)
+    val user = user ?: FakeDataSource.getUserById(1)
     val exercises = FakeDataSource.exercises
 
     // Squat (ID=1) varsayılan seçili
@@ -196,7 +200,7 @@ fun HomeScreen(onStartWorkout: () -> Unit) {
             GradientButton(
                 text = "Antrenmana Başla",
                 enabled = isActive,
-                onClick = onStartWorkout
+                onClick = { onStartWorkout(selectedExerciseId) }
             )
         }
     }
@@ -348,6 +352,6 @@ private fun GradientButton(
 @Composable
 private fun HomeScreenPreview() {
     FitFormAITheme {
-        HomeScreen(onStartWorkout = {})
+        HomeScreen(onStartWorkout = { _ -> })
     }
 }

@@ -55,7 +55,7 @@ import com.formfit.ai.ui.theme.TextSecondary
 private val emojiOptions = listOf("😊", "😎", "🤓", "🎮", "🤖")
 
 @Composable
-fun LoginScreen(onLoginSuccess: () -> Unit) {
+fun LoginScreen(onLoginSuccess: (kullaniciAdi: String, email: String, profilEmoji: String) -> Unit) {
     var ad by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var secilenEmoji by remember { mutableStateOf("😊") }
@@ -171,7 +171,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
                     // Hesap Oluştur butonu
                     Button(
-                        onClick = onLoginSuccess,
+                        onClick = { onLoginSuccess(ad, email, secilenEmoji) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -208,7 +208,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     }
                 },
                 fontSize = 14.sp,
-                modifier = Modifier.clickable { onLoginSuccess() }
+                modifier = Modifier.clickable { onLoginSuccess(ad, email, secilenEmoji) }
             )
 
             Spacer(modifier = Modifier.height(40.dp))
@@ -297,6 +297,6 @@ private fun EmojiPickerItem(
 @Composable
 private fun LoginScreenPreview() {
     FitFormAITheme {
-        LoginScreen(onLoginSuccess = {})
+        LoginScreen(onLoginSuccess = { _, _, _ -> })
     }
 }

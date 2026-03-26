@@ -3,6 +3,8 @@ package com.formfit.ai.ui.screens
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.util.Size
 import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -63,6 +65,7 @@ import com.formfit.ai.analysis.PoseOverlay
 import com.formfit.ai.analysis.RepFeedback
 import com.formfit.ai.analysis.SquatAnalyzer
 import com.formfit.ai.analysis.SquatPhase
+import com.formfit.ai.data.model.WorkoutResult
 import com.formfit.ai.ui.theme.BackgroundDark
 import com.formfit.ai.ui.theme.DividerColor
 import com.formfit.ai.ui.theme.ErrorRed
@@ -81,7 +84,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 
 @Composable
-fun AnalysisScreen(onFinish: () -> Unit) {
+fun AnalysisScreen(
+    exerciseId: Int = 1,
+    kullaniciID: Int = 1,
+    onFinish: (WorkoutResult) -> Unit
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? Activity
@@ -122,8 +129,6 @@ fun AnalysisScreen(onFinish: () -> Unit) {
     var feedback by remember { mutableStateOf<RepFeedback?>(null) }
     var liveMetrics by remember { mutableStateOf(LiveMetrics()) }
     var poseResult by remember { mutableStateOf<PoseLandmarkerResult?>(null) }
-    var imageWidth by remember { mutableIntStateOf(480) }
-    var imageHeight by remember { mutableIntStateOf(640) }
     var currentPhase by remember { mutableStateOf(SquatPhase.STANDING) }
 
     // ── Duraklat / Süre ───────────────────────────────────────────────────────
@@ -143,9 +148,7 @@ fun AnalysisScreen(onFinish: () -> Unit) {
 
     // ── Kamera executor ───────────────────────────────────────────────────────
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
-    DisposableEffect(Unit) {
-        onDispose { cameraExecutor.shutdown() }
-    }
+    val isFinishing = remember { AtomicBoolean(false) }
 
     // ── PoseDetector ─────────────────────────────────────────────────────────
     val poseDetector = remember {
@@ -157,10 +160,8 @@ fun AnalysisScreen(onFinish: () -> Unit) {
                     inputImageWidth: Int,
                     inputImageHeight: Int
                 ) {
-                    if (isPausedAtomic.get()) return
+                    if (isPausedAtomic.get() || isFinishing.get()) return
                     poseResult = result
-                    imageWidth = inputImageWidth
-                    imageHeight = inputImageHeight
                     val phase = squatAnalyzer.analyze(result)
                     currentPhase = phase
                     repCount = squatAnalyzer.repCount
@@ -172,12 +173,20 @@ fun AnalysisScreen(onFinish: () -> Unit) {
             }
         )
     }
-    DisposableEffect(Unit) {
-        onDispose { poseDetector.close() }
-    }
 
     // ── CameraX bağlama ───────────────────────────────────────────────────────
     val previewView = remember { PreviewView(context) }
+    var cameraProviderRef by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+
+    // Tüm kaynakları temizle
+    DisposableEffect(Unit) {
+        onDispose {
+            isFinishing.set(true)
+            cameraProviderRef?.unbindAll()
+            poseDetector.close()
+            cameraExecutor.shutdown()
+        }
+    }
 
     LaunchedEffect(hasCameraPermission) {
         if (!hasCameraPermission) return@LaunchedEffect
@@ -188,21 +197,35 @@ fun AnalysisScreen(onFinish: () -> Unit) {
                 if (cont.isActive) cont.resume(future.get())
             }, ContextCompat.getMainExecutor(context))
         }
+        cameraProviderRef = cameraProvider
 
         val preview = Preview.Builder()
             .build()
             .also { it.setSurfaceProvider(previewView.surfaceProvider) }
 
         val imageAnalysis = ImageAnalysis.Builder()
-            .setTargetResolution(Size(640, 480))
+            .setTargetResolution(Size(480, 640))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
             .build()
             .also { analysis ->
                 analysis.setAnalyzer(cameraExecutor) { imageProxy ->
                     imageProxy.use { proxy ->
-                        if (!isPausedAtomic.get()) {
-                            poseDetector.detectLiveStream(proxy.toBitmap())
+                        if (!isPausedAtomic.get() && !isFinishing.get()) {
+                            val originalBitmap = proxy.toBitmap()
+                            val rotation = proxy.imageInfo.rotationDegrees
+                            val bitmap = if (rotation != 0) {
+                                val matrix = Matrix()
+                                matrix.postRotate(rotation.toFloat())
+                                Bitmap.createBitmap(
+                                    originalBitmap, 0, 0,
+                                    originalBitmap.width, originalBitmap.height,
+                                    matrix, true
+                                )
+                            } else {
+                                originalBitmap
+                            }
+                            poseDetector.detectLiveStream(bitmap)
                         }
                     }
                 }
@@ -232,10 +255,7 @@ fun AnalysisScreen(onFinish: () -> Unit) {
             // İskelet overlay
             PoseOverlay(
                 result = poseResult,
-                imageWidth = imageWidth,
-                imageHeight = imageHeight,
                 liveMetrics = liveMetrics,
-                isFrontCamera = true,
                 modifier = Modifier.fillMaxSize()
             )
         } else if (permissionDenied) {
@@ -306,7 +326,26 @@ fun AnalysisScreen(onFinish: () -> Unit) {
                     containerColor = Primary,
                     textColor = Color(0xFF0D1117),
                     modifier = Modifier.weight(1f),
-                    onClick = onFinish
+                    onClick = {
+                        isFinishing.set(true)
+                        isPausedAtomic.set(true)
+                        cameraProviderRef?.unbindAll()
+                        poseDetector.close()
+                        onFinish(
+                            WorkoutResult(
+                                antrenmanID  = 0,
+                                kullaniciID  = kullaniciID,
+                                hareketID    = exerciseId,
+                                tekrarSayisi = repCount,
+                                skorPuani    = currentScore,
+                                sure         = elapsedSeconds * 1000L,
+                                tarih        = System.currentTimeMillis(),
+                                omurgaDurusu = squatAnalyzer.omurgaDurusu,
+                                kolPozisyonu = squatAnalyzer.dizAcisi,
+                                denge        = squatAnalyzer.denge
+                            )
+                        )
+                    }
                 )
             }
         }
