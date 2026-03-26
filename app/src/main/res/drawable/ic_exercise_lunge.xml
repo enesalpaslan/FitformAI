@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Baş -->
+    <path
+        android:fillColor="#8B949E"
+        android:pathData="M24,6 a4,4 0 1,1 0,0.001 Z" />
+    <!-- Lunge pozisyonu (basit stick figure) -->
+    <path
+        android:strokeColor="#8B949E"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M24,14 L24,26 M24,26 L16,40 M24,26 L34,34 M34,34 L34,42 M16,22 L32,22" />
+</vector>

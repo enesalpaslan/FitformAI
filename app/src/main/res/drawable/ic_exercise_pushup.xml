@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Baş -->
+    <path
+        android:fillColor="#8B949E"
+        android:pathData="M10,20 a4,4 0 1,1 0,0.001 Z" />
+    <!-- Push-up pozisyonu (yatay stick figure) -->
+    <path
+        android:strokeColor="#8B949E"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M14,24 L36,28 M14,24 L10,32 M36,28 L38,36 M20,24 L22,18 M30,26 L32,20" />
+</vector>

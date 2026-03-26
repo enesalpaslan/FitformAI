@@ -1,0 +1,13 @@
+MediaPipe Pose Landmarker model dosyasını buraya indirin:
+
+Komut (terminal):
+  curl -o pose_landmarker_lite.task \
+    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
+
+İndirilen dosyayı şu konuma koyun:
+  app/src/main/assets/pose_landmarker_lite.task
+
+Alternatif modeller (daha doğru, daha yavaş):
+  - pose_landmarker_full.task   (~6MB)
+  - pose_landmarker_heavy.task  (~26MB)
+  Lite model (~3MB) gerçek zamanlı kullanım için önerilir.
