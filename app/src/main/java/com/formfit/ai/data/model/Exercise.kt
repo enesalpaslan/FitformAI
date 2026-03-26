@@ -5,5 +5,6 @@ data class Exercise(
     val hareketIsmi: String,
     val hedefKaslar: String,
     val iconResId: Int,         // R.drawable.*
-    val aktif: Boolean = true   // false → UI'da kilitli / tıklanamaz
+    val aktif: Boolean = true,
+    val annneni: Boolean = false// false → UI'da kilitli / tıklanamaz
 )
