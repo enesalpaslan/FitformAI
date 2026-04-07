@@ -245,8 +245,9 @@ Bu proje [MIT Lisansı](LICENSE) ile lisanslanmıştır.
 
 **Malik Enes Alpaslan** — [malikenesalpaslan@hotmail.com](mailto:malikenesalpaslan@hotmail.com)
 
-Proje Linki: [https://github.com/enesalpaslan/FitFormAI](https://github.com/kullaniciadi/FitFormAI)
+Proje Linki: [https://github.com/enesalpaslan/FitFormAI](https://github.com/enesalpaslan/FitformAI)
 ---
+
 
 <p align="center">
   ISUBÜ Teknoloji Fakültesi — Bilgisayar Mühendisliği Bölümü<br/>
